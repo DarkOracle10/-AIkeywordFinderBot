@@ -1,6 +1,6 @@
-# Telegram Keyword Search Bot
+# Telegram Keyword Search
 
-A multi-user Telegram bot that allows users to search for keywords in their own Telegram chats.
+A multi-user Telegram application that allows users to search for keywords in their own Telegram chats. Available as both a **Telegram Bot** and a **Desktop GUI Application**.
 
 ## Features
 
@@ -10,23 +10,25 @@ A multi-user Telegram bot that allows users to search for keywords in their own 
 - 💬 **Chat Selection** - Search specific chats/groups or all chats
 - 🔒 **Secure Sessions** - User sessions are stored securely and can be logged out anytime
 - 🚫 **Auto-Filter** - Automatically excludes "Saved Messages" and bot chats
+- 🖥️ **Desktop App** - Native Windows GUI application with Tkinter
+- 🤖 **Telegram Bot** - Use directly from Telegram chat
 
-## Setup
+## Quick Start
 
 ### 1. Install Dependencies
 
 ```bash
-pip install telethon python-dotenv
+pip install -r requirements.txt
 ```
 
 ### 2. Create `.env` File
 
-Create a `.env` file in the project root with:
+Create a `.env` file in the project root:
 
 ```env
 TG_API_ID=your_api_id
 TG_API_HASH=your_api_hash
-TG_BOT_TOKEN=your_bot_token
+TG_BOT_TOKEN=your_bot_token  # Only needed for Telegram bot
 
 # Optional: MTProto Proxy settings
 MT_PROXY_HOST=proxy_host
@@ -36,13 +38,50 @@ MT_PROXY_SECRET=proxy_secret
 
 Get your API credentials from: https://my.telegram.org/apps
 
-### 3. Run the Bot
+### 3. Run the Application
 
+**Desktop GUI only:**
+```bash
+python run_gui.py
+```
+
+**Telegram Bot only:**
+```bash
+python run_bot.py
+```
+
+**Both simultaneously:**
+```bash
+python run_both.py
+```
+
+**Legacy (original bot):**
 ```bash
 python main.py
 ```
 
-## Usage
+## Desktop Application
+
+The desktop application provides a native Windows GUI for searching your Telegram chats.
+
+### Features
+- 📱 Login with phone number + verification code + optional 2FA
+- 🔍 Search interface with chat selection, keywords, and date range
+- 📋 Results view with clickable message links
+- 💾 Persistent session storage
+
+### Building Executable (.exe)
+
+To create a standalone executable:
+
+```bash
+pip install pyinstaller
+pyinstaller telegram_search.spec
+```
+
+The executable will be created in the `dist/` folder.
+
+## Telegram Bot Usage
 
 ### First Time Setup
 
@@ -62,15 +101,44 @@ Once logged in:
 3. Enter keywords (comma-separated, e.g., python,django,remote)
 4. Enter start date (YYYY-MM-DD format)
 5. Enter end date (YYYY-MM-DD format)
-6. Bot will return up to 20 matching messages
+6. Bot will return up to 20 matching messages with direct links
 
 ### Available Commands
 
-- `/start` - Show welcome message and available commands
-- `/login` - Log in with your Telegram account
-- `/logout` - Log out and delete your session
-- `/status` - Check your login status
-- `/search` - Search for keywords in your chats
+| Command | Description |
+|---------|-------------|
+| `/start` | Show welcome message and keyboard |
+| `/login` | Log in with your Telegram account |
+| `/logout` | Log out and delete your session |
+| `/status` | Check your login status |
+| `/search` | Search for keywords in your chats |
+| `/help` | Show detailed help information |
+| `/feedback` | Send feedback to the admin |
+| `/cancel` | Cancel current operation |
+
+## Project Structure
+
+```
+telegram-keyword-searcher/
+├── config.py           # Shared configuration module
+├── utils.py            # Shared utility functions
+├── searcher.py         # Message search functionality
+├── session_manager.py  # Per-user session management
+├── main.py             # Legacy bot entry point
+├── run_bot.py          # Telegram bot launcher
+├── run_gui.py          # Desktop GUI launcher
+├── run_both.py         # Combined launcher
+├── bot_pkg/            # Telegram bot package
+│   ├── __init__.py
+│   └── main_bot.py     # Bot logic and handlers
+├── desktop_app/        # Desktop GUI package
+│   ├── __init__.py
+│   ├── main_gui.py     # Tkinter GUI application
+│   └── auth.py         # Desktop authentication
+├── sessions/           # User session files (git ignored)
+├── requirements.txt    # Python dependencies
+└── telegram_search.spec # PyInstaller build spec
+```
 
 ## Architecture
 
