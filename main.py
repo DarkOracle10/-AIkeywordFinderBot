@@ -11,6 +11,7 @@ Version: 1.0.0
 import os
 import logging
 from telethon import TelegramClient, connection, events
+from telethon.tl.types import KeyboardButtonRow, KeyboardButton
 from dotenv import load_dotenv
 from datetime import datetime, timezone
 from searcher import search_messages
@@ -90,26 +91,32 @@ logger.info("Session manager initialized")
 
 @bot.on(events.NewMessage(pattern="/start"))
 async def start(event):
+    """Handle /start command with keyboard markup"""
     user_id = event.sender_id
     is_logged_in = session_manager.has_session(user_id)
     
+    # Create keyboard buttons
     if is_logged_in:
-        await event.respond(
+        buttons = [
+            [KeyboardButton("/search"), KeyboardButton("/status")],
+            [KeyboardButton("/help"), KeyboardButton("/feedback")],
+            [KeyboardButton("/logout")]
+        ]
+        message = (
             "👋 Welcome back! You're already logged in.\n\n"
-            "🔍 /search - Search for keywords in your chats\n"
-            "📊 /status - Check your login status\n"
-            "🚪 /logout - Log out from your account"
+            "Use the buttons below or type commands:"
         )
     else:
-        await event.respond(
+        buttons = [
+            [KeyboardButton("/login")],
+            [KeyboardButton("/help"), KeyboardButton("/feedback")]
+        ]
+        message = (
             "👋 Hi! I'm a keyword search bot.\n\n"
-            "To get started, you need to log in with your Telegram account:\n"
-            "🔐 /login - Log in with your phone number\n\n"
-            "After logging in, you'll be able to:\n"
-            "🔍 /search - Search for keywords in YOUR own chats\n"
-            "📊 /status - Check your login status\n"
-            "🚪 /logout - Log out from your account"
+            "To get started, click /login to authenticate with your Telegram account."
         )
+    
+    await event.respond(message, buttons=buttons)
 
 
 @bot.on(events.NewMessage(pattern="/login"))
@@ -155,6 +162,7 @@ async def cmd_logout(event):
 
 @bot.on(events.NewMessage(pattern="/status"))
 async def cmd_status(event):
+    """Check login status"""
     user_id = event.sender_id
     
     if session_manager.has_session(user_id):
@@ -170,6 +178,48 @@ async def cmd_status(event):
             await event.respond("⚠️ Session expired. Please /login again.")
     else:
         await event.respond("❌ Not logged in. Use /login to get started.")
+
+
+@bot.on(events.NewMessage(pattern="/help"))
+async def cmd_help(event):
+    """Show help information"""
+    help_text = (
+        "📚 **HELP & COMMANDS**\n\n"
+        "🔐 **Authentication:**\n"
+        "/login - Log in with your phone number\n"
+        "/logout - Log out and delete your session\n"
+        "/status - Check your current login status\n\n"
+        "🔍 **Search:**\n"
+        "/search - Search for keywords in your chats\n\n"
+        "**How to Search:**\n"
+        "1. Use /search\n"
+        "2. Enter chat names or 'all'\n"
+        "3. Enter keywords (comma-separated)\n"
+        "4. Enter start date (YYYY-MM-DD)\n"
+        "5. Enter end date (YYYY-MM-DD)\n"
+        "6. Get results with direct message links\n\n"
+        "💬 **Support:**\n"
+        "/feedback - Send feedback or report issues\n"
+        "/help - Show this help message\n\n"
+        "**Date Format:** YYYY-MM-DD (e.g., 2026-02-01)\n"
+        "**Keywords:** Comma-separated (e.g., python,django,web)"
+    )
+    await event.respond(help_text)
+
+
+@bot.on(events.NewMessage(pattern="/feedback"))
+async def cmd_feedback(event):
+    """Handle feedback command - start feedback flow"""
+    user_id = event.sender_id
+    logger.info(f"User {user_id} initiated feedback")
+    
+    USER_STATE[user_id] = {"step": "awaiting_feedback"}
+    await event.respond(
+        "💬 **Send Your Feedback**\n\n"
+        "Please type your feedback, bug report, or suggestion below.\n"
+        "Your message will be sent with your user ID for follow-up.\n\n"
+        "Type /cancel to cancel."
+    )
 
 
 @bot.on(events.NewMessage(pattern="/search"))
@@ -201,6 +251,12 @@ async def cmd_search(event):
 async def handle_message(event):
     # Ignore command messages
     if event.raw_text.startswith('/'):
+        # Handle /cancel command in any context
+        if event.raw_text == "/cancel":
+            user_id = event.sender_id
+            if user_id in USER_STATE:
+                del USER_STATE[user_id]
+                await event.respond("❌ Cancelled. Use /start to begin.")
         return
     
     # Ignore bot's own messages
@@ -212,6 +268,35 @@ async def handle_message(event):
         return
 
     state = USER_STATE[user_id]
+
+    # Handle feedback submission
+    if state["step"] == "awaiting_feedback":
+        feedback_text = event.raw_text
+        logger.info(f"Feedback from user {user_id}: {feedback_text}")
+        
+        # Send feedback to admin
+        try:
+            admin_username = "Amir10Aeini"
+            feedback_message = (
+                f"📬 **New Feedback**\n\n"
+                f"👤 **User ID:** {user_id}\n"
+                f"💬 **Message:**\n{feedback_text}"
+            )
+            await bot.send_message(admin_username, feedback_message)
+            await event.respond(
+                "✅ Thank you for your feedback! It has been sent to the admin.\n\n"
+                "Use /start to return to the main menu."
+            )
+            logger.info(f"Feedback sent to admin for user {user_id}")
+        except Exception as e:
+            logger.error(f"Failed to send feedback: {e}")
+            await event.respond(
+                "❌ Failed to send feedback. Please try again later.\n\n"
+                "Use /start to return to the main menu."
+            )
+        
+        del USER_STATE[user_id]
+        return
 
     # Handle login flow
     if state["step"] == "awaiting_phone":
