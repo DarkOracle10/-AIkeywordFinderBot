@@ -1,0 +1,58 @@
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# User Sessions (Keep private)
+sessions/
+*.session
+*.session-journal
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+bot/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+bot.log
+
+# OS
+.DS_Store
+Thumbs.db
+
