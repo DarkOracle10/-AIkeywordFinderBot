@@ -54,7 +54,6 @@ bot.log
 
 # Generated Files
 generate_portfolio_telegram_search.py
-*.pdf
 
 # Standalone App Distribution (but keep .env.example)
 standalone-app/.env
