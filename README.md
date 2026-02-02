@@ -1,4 +1,4 @@
-# Telegram Keyword Search
+s# Telegram Keyword Search
 
 A multi-user Telegram application that allows users to search for keywords in their own Telegram chats. Available as both a **Telegram Bot** and a **Desktop GUI Application**.
 
