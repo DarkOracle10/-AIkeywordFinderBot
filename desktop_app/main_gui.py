@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import Config
 from utils import truncate_text, validate_date_format
 from desktop_app.auth import DesktopAuth
-from searcher import search_messages, parse_chat_filter, get_all_folders
+from searcher import search_messages, parse_chat_filter, get_all_folders, normalize_persian
 
 # Configure logging
 logging.basicConfig(
@@ -45,8 +45,8 @@ class TelegramSearchApp:
         """Initialize the application."""
         self.root = root
         self.root.title("Telegram Keyword Search")
-        self.root.geometry("800x700")
-        self.root.minsize(600, 500)
+        self.root.geometry("850x850")
+        self.root.minsize(700, 750)
         
         # Authentication handler
         self.auth = DesktopAuth()
@@ -61,6 +61,7 @@ class TelegramSearchApp:
         # Build UI
         self._setup_styles()
         self._create_widgets()
+        self._setup_clipboard_bindings()
         
         # Check existing session on startup
         self._run_async(self._check_session())
@@ -77,15 +78,89 @@ class TelegramSearchApp:
         """Run a coroutine in the async thread."""
         return asyncio.run_coroutine_threadsafe(coro, self.loop)
     
+    def _setup_clipboard_bindings(self):
+        """Setup Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A for all Entry widgets."""
+        def copy(event):
+            widget = event.widget
+            if widget.selection_present():
+                self.root.clipboard_clear()
+                self.root.clipboard_append(widget.selection_get())
+            return "break"
+        
+        def paste(event):
+            widget = event.widget
+            try:
+                text = self.root.clipboard_get()
+                if widget.selection_present():
+                    widget.delete(tk.SEL_FIRST, tk.SEL_LAST)
+                widget.insert(tk.INSERT, text)
+            except tk.TclError:
+                pass
+            return "break"
+        
+        def cut(event):
+            widget = event.widget
+            if widget.selection_present():
+                self.root.clipboard_clear()
+                self.root.clipboard_append(widget.selection_get())
+                widget.delete(tk.SEL_FIRST, tk.SEL_LAST)
+            return "break"
+        
+        def select_all(event):
+            widget = event.widget
+            widget.select_range(0, tk.END)
+            widget.icursor(tk.END)
+            return "break"
+        
+        def normalize_on_key(event):
+            """Normalize Persian/Arabic characters as user types."""
+            widget = event.widget
+            # Get current text
+            current = widget.get()
+            # Normalize it
+            normalized = normalize_persian(current)
+            # Only update if different (to avoid cursor jump)
+            if current != normalized:
+                cursor_pos = widget.index(tk.INSERT)
+                widget.delete(0, tk.END)
+                widget.insert(0, normalized)
+                # Try to restore cursor position
+                try:
+                    widget.icursor(cursor_pos)
+                except:
+                    pass
+        
+        # Bind to all Entry widgets
+        self.root.bind_class('TEntry', '<Control-c>', copy)
+        self.root.bind_class('TEntry', '<Control-v>', paste)
+        self.root.bind_class('TEntry', '<Control-x>', cut)
+        self.root.bind_class('TEntry', '<Control-a>', select_all)
+        
+        # Also bind uppercase versions (Caps Lock)
+        self.root.bind_class('TEntry', '<Control-C>', copy)
+        self.root.bind_class('TEntry', '<Control-V>', paste)
+        self.root.bind_class('TEntry', '<Control-X>', cut)
+        self.root.bind_class('TEntry', '<Control-A>', select_all)
+        
+        # Normalize Persian characters on key release
+        self.root.bind_class('TEntry', '<KeyRelease>', normalize_on_key)
+    
     def _setup_styles(self):
         """Configure ttk styles."""
         style = ttk.Style()
         style.theme_use('clam')
         
+        # Use a font that properly supports Persian/Arabic characters
+        # Tahoma and Arial have good Persian support
+        persian_font = ('Tahoma', 11)
+        
+        # Configure TEntry to use Persian-friendly font
+        style.configure('TEntry', font=persian_font)
+        
         # Custom button styles
-        style.configure('Primary.TButton', font=('Segoe UI', 10))
-        style.configure('Success.TButton', font=('Segoe UI', 10))
-        style.configure('Danger.TButton', font=('Segoe UI', 10))
+        style.configure('Primary.TButton', font=('Tahoma', 10))
+        style.configure('Success.TButton', font=('Tahoma', 10))
+        style.configure('Danger.TButton', font=('Tahoma', 10))
     
     def _create_widgets(self):
         """Create all UI widgets."""
@@ -132,7 +207,7 @@ class TelegramSearchApp:
         phone_frame.pack(fill=tk.X, pady=(0, 10))
         
         ttk.Label(phone_frame, text="Phone (international format):").pack(anchor=tk.W)
-        self.phone_entry = ttk.Entry(phone_frame, width=30, font=('Segoe UI', 11))
+        self.phone_entry = ttk.Entry(phone_frame, width=30, font=('Tahoma', 11))
         self.phone_entry.pack(fill=tk.X, pady=5)
         self.phone_entry.insert(0, "+")
         
@@ -145,7 +220,7 @@ class TelegramSearchApp:
         code_frame.pack(fill=tk.X, pady=(0, 10))
         
         ttk.Label(code_frame, text="Code from Telegram:").pack(anchor=tk.W)
-        self.code_entry = ttk.Entry(code_frame, width=20, font=('Segoe UI', 11))
+        self.code_entry = ttk.Entry(code_frame, width=20, font=('Tahoma', 11))
         self.code_entry.pack(fill=tk.X, pady=5)
         self.code_entry.config(state='disabled')
         
@@ -159,7 +234,7 @@ class TelegramSearchApp:
         tfa_frame.pack(fill=tk.X, pady=(0, 10))
         
         ttk.Label(tfa_frame, text="2FA Password:").pack(anchor=tk.W)
-        self.tfa_entry = ttk.Entry(tfa_frame, width=20, font=('Segoe UI', 11), show="*")
+        self.tfa_entry = ttk.Entry(tfa_frame, width=20, font=('Tahoma', 11), show="*")
         self.tfa_entry.pack(fill=tk.X, pady=5)
         self.tfa_entry.config(state='disabled')
         
@@ -190,7 +265,7 @@ class TelegramSearchApp:
         ttk.Label(chats_frame, text="Enter 'all', chat names, or folders with <folder_name> syntax:").pack(anchor=tk.W)
         ttk.Label(chats_frame, text="Examples: all | <Work>, <Friends> | chat1, chat2, <MyFolder>", 
                   font=('Segoe UI', 9, 'italic'), foreground='#666666').pack(anchor=tk.W)
-        self.chats_entry = ttk.Entry(chats_frame, width=50, font=('Segoe UI', 11))
+        self.chats_entry = ttk.Entry(chats_frame, width=50, font=('Tahoma', 11))
         self.chats_entry.pack(fill=tk.X, pady=5)
         self.chats_entry.insert(0, "all")
         
@@ -206,7 +281,7 @@ class TelegramSearchApp:
         ttk.Label(exclude_frame, text="Exclude chats/folders using the same syntax (<folder_name>, chat):").pack(anchor=tk.W)
         ttk.Label(exclude_frame, text="Examples: <Muted>, Ads, <SpamFolder> | leave empty for none",
               font=('Segoe UI', 9, 'italic'), foreground='#666666').pack(anchor=tk.W)
-        self.exclude_entry = ttk.Entry(exclude_frame, width=50, font=('Segoe UI', 11))
+        self.exclude_entry = ttk.Entry(exclude_frame, width=50, font=('Tahoma', 11))
         self.exclude_entry.pack(fill=tk.X, pady=5)
         
         # Keywords frame
@@ -214,7 +289,7 @@ class TelegramSearchApp:
         keywords_frame.pack(fill=tk.X, pady=(0, 10))
         
         ttk.Label(keywords_frame, text="Keywords (comma-separated):").pack(anchor=tk.W)
-        self.keywords_entry = ttk.Entry(keywords_frame, width=50, font=('Segoe UI', 11))
+        self.keywords_entry = ttk.Entry(keywords_frame, width=50, font=('Tahoma', 11))
         self.keywords_entry.pack(fill=tk.X, pady=5)
         
         # Date range frame
@@ -228,14 +303,14 @@ class TelegramSearchApp:
         start_frame = ttk.Frame(dates_row)
         start_frame.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 5))
         ttk.Label(start_frame, text="Start Date (YYYY-MM-DD):").pack(anchor=tk.W)
-        self.start_date_entry = ttk.Entry(start_frame, width=15, font=('Segoe UI', 11))
+        self.start_date_entry = ttk.Entry(start_frame, width=15, font=('Tahoma', 11))
         self.start_date_entry.pack(fill=tk.X, pady=5)
         
         # End date
         end_frame = ttk.Frame(dates_row)
         end_frame.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(5, 0))
         ttk.Label(end_frame, text="End Date (YYYY-MM-DD):").pack(anchor=tk.W)
-        self.end_date_entry = ttk.Entry(end_frame, width=15, font=('Segoe UI', 11))
+        self.end_date_entry = ttk.Entry(end_frame, width=15, font=('Tahoma', 11))
         self.end_date_entry.pack(fill=tk.X, pady=5)
         
         # Set default dates
@@ -485,10 +560,10 @@ class TelegramSearchApp:
             self.notebook.select(0)  # Switch to login tab
             return
         
-        # Validate inputs
-        chats_input = self.chats_entry.get().strip()
-        exclude_input = self.exclude_entry.get().strip()
-        keywords_input = self.keywords_entry.get().strip()
+        # Validate inputs (normalize Persian/Arabic characters)
+        chats_input = normalize_persian(self.chats_entry.get().strip())
+        exclude_input = normalize_persian(self.exclude_entry.get().strip())
+        keywords_input = normalize_persian(self.keywords_entry.get().strip())
         start_date_str = self.start_date_entry.get().strip()
         end_date_str = self.end_date_entry.get().strip()
         

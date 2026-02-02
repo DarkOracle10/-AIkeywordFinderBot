@@ -52,6 +52,18 @@ bot/
 *.log
 bot.log
 
+# Generated Files
+generate_portfolio_telegram_search.py
+*.pdf
+
+# Standalone App Distribution (but keep .env.example)
+standalone-app/.env
+dist/.env
+standalone-app/sessions/
+dist/sessions/
+standalone-app/desktop_app.log
+dist/desktop_app.log
+
 # OS
 .DS_Store
 Thumbs.db

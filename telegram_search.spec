@@ -5,7 +5,7 @@ PyInstaller spec file for Telegram Keyword Search Desktop App.
 Build command:
     pyinstaller telegram_search.spec
 
-This will create a single executable file in the dist/ folder.
+This will create a single executable file in the standalone-app/ folder.
 """
 
 import sys
