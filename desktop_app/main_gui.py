@@ -21,12 +21,8 @@ from typing import Optional
 
 from config import Config
 from desktop_app.auth import DesktopAuth
-from searcher import (
-    get_all_folders,
-    normalize_persian,
-    parse_chat_filter,
-    search_messages,
-)
+from searcher import (get_all_folders, normalize_persian, parse_chat_filter,
+                      search_messages)
 from utils import truncate_text, validate_date_format
 
 # Configure logging
