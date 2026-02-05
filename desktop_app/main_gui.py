@@ -8,29 +8,28 @@ for searching keywords across Telegram chats.
 Version: 1.0.0
 """
 
-import tkinter as tk
-from tkinter import ttk, messagebox, scrolledtext
 import asyncio
-import threading
-import webbrowser
 import logging
-from datetime import datetime, timezone
-from typing import Optional
-
-import sys
 import os
+import sys
+import threading
+import tkinter as tk
+import webbrowser
+from datetime import datetime, timezone
+from tkinter import messagebox, scrolledtext, ttk
+from typing import Optional
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import Config
-from utils import truncate_text, validate_date_format
 from desktop_app.auth import DesktopAuth
 from searcher import (
-    search_messages,
-    parse_chat_filter,
     get_all_folders,
     normalize_persian,
+    parse_chat_filter,
+    search_messages,
 )
+from utils import truncate_text, validate_date_format
 
 # Configure logging
 logging.basicConfig(

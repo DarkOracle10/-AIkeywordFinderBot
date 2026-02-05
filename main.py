@@ -8,12 +8,14 @@ for keywords across their chats. Each user's session is isolated and secure.
 Version: 1.0.0
 """
 
-import os
 import logging
-from telethon import TelegramClient, connection, events
-from telethon.tl.types import KeyboardButtonRow, KeyboardButton
-from dotenv import load_dotenv
+import os
 from datetime import datetime, timezone
+
+from dotenv import load_dotenv
+from telethon import TelegramClient, connection, events
+from telethon.tl.types import KeyboardButton, KeyboardButtonRow
+
 from searcher import search_messages
 from session_manager import SessionManager
 

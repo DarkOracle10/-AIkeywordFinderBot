@@ -9,19 +9,19 @@ Version: 1.1.0
 """
 
 import logging
-from telethon import TelegramClient, connection, events
-from telethon.tl.types import KeyboardButton
+import os
+import sys
 from datetime import datetime, timezone
 
-import sys
-import os
+from telethon import TelegramClient, connection, events
+from telethon.tl.types import KeyboardButton
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import Config
-from utils import truncate_text, generate_message_link
-from searcher import search_messages, parse_chat_filter, get_all_folders
+from searcher import get_all_folders, parse_chat_filter, search_messages
 from session_manager import SessionManager
+from utils import generate_message_link, truncate_text
 
 # Configure logging
 logging.basicConfig(

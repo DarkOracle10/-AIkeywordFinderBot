@@ -7,9 +7,10 @@ instances for each bot user, enabling multi-user functionality where each
 user authenticates with their own Telegram account.
 """
 
-import os
 import logging
+import os
 from typing import Dict, Optional, Tuple
+
 from telethon import TelegramClient
 from telethon.errors import SessionPasswordNeededError
 

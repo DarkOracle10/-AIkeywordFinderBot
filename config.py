@@ -6,6 +6,7 @@ Handles loading environment variables and proxy settings.
 """
 
 import os
+
 from dotenv import load_dotenv
 
 # Load environment variables

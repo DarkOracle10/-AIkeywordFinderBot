@@ -5,8 +5,9 @@ Launcher script to run both Telegram Bot and Desktop GUI simultaneously.
 This starts the bot in a background thread and the GUI in the main thread.
 """
 
-import threading
 import sys
+import threading
+
 from bot_pkg.main_bot import create_bot_client, setup_handlers
 from desktop_app.main_gui import run_gui
 

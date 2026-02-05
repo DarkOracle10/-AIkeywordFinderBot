@@ -5,13 +5,13 @@ Authentication module for Desktop GUI.
 Handles Telegram login flow for the desktop application.
 """
 
-import os
 import logging
+import os
+import sys
 from typing import Optional, Tuple
+
 from telethon import TelegramClient
 from telethon.errors import SessionPasswordNeededError
-
-import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

@@ -1,12 +1,12 @@
 # searcher.py
 import unicodedata
 from datetime import datetime
-from typing import List, Tuple, Optional, Set
+from typing import List, Optional, Set, Tuple
 
 from telethon import TelegramClient
 from telethon.tl.custom import Dialog
-from telethon.tl.types import Message
 from telethon.tl.functions.messages import GetDialogFiltersRequest
+from telethon.tl.types import Message
 
 # Persian/Arabic character normalization map
 PERSIAN_ARABIC_MAP = {
