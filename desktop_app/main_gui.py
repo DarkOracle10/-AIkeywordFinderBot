@@ -8,6 +8,7 @@ for searching keywords across Telegram chats.
 Version: 1.0.0
 """
 
+from datetime import datetime, timezone
 import asyncio
 import logging
 import os
@@ -15,7 +16,6 @@ import sys
 import threading
 import tkinter as tk
 import webbrowser
-from datetime import datetime, timezone
 from tkinter import messagebox, scrolledtext, ttk
 from typing import Optional
 
