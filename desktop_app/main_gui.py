@@ -487,7 +487,8 @@ class TelegramSearchApp:
                 await self.auth.send_code(phone)
                 self.root.after(0, self._on_code_sent)
             except Exception as e:
-                self.root.after(0, lambda: self._on_code_error(str(e)))
+                error_str = str(e)
+                self.root.after(0, lambda err=error_str: self._on_code_error(err))
 
         self._run_async(send())
 
@@ -595,11 +596,10 @@ class TelegramSearchApp:
                 self.root.after(0, lambda: self._display_folders(folders))
             except Exception as e:
                 logger.error(f"Error getting folders: {e}")
+                error_msg = f"Failed to get folders: {e}"
                 self.root.after(
                     0,
-                    lambda: messagebox.showerror(
-                        "Error", f"Failed to get folders: {e}"
-                    ),
+                    lambda msg=error_msg: messagebox.showerror("Error", msg),
                 )
             finally:
                 self.root.after(0, lambda: self.folders_btn.config(state="normal"))
@@ -721,7 +721,8 @@ class TelegramSearchApp:
                 self.root.after(0, lambda: self._display_results(hits))
             except Exception as e:
                 logger.error(f"Search error: {e}")
-                self.root.after(0, lambda: self._on_search_error(str(e)))
+                error_str = str(e)
+                self.root.after(0, lambda err=error_str: self._on_search_error(err))
 
         self._run_async(search())
 
@@ -827,3 +828,6 @@ def run_gui():
 
 if __name__ == "__main__":
     run_gui()
+
+
+
