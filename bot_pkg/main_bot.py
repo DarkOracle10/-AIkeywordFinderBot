@@ -534,7 +534,6 @@ def setup_handlers(bot_client):
 
 async def shutdown():
     """Cleanup on shutdown"""
-    global bot, session_manager
     print("Shutting down...")
     if session_manager:
         await session_manager.disconnect_all()
