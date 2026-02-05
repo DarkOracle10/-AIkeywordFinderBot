@@ -8,4 +8,4 @@ to search their chats via the bot.
 
 from bot_pkg.main_bot import run_bot
 
-__all__ = ['run_bot']
+__all__ = ["run_bot"]

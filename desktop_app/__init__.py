@@ -8,4 +8,4 @@ to search their chats via a native desktop application.
 
 from desktop_app.main_gui import run_gui
 
-__all__ = ['run_gui']
+__all__ = ["run_gui"]

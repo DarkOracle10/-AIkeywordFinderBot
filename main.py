@@ -20,11 +20,8 @@ from session_manager import SessionManager
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('bot.log'),
-        logging.StreamHandler()
-    ]
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("bot.log"), logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
@@ -39,8 +36,12 @@ bot_token = os.getenv("TG_BOT_TOKEN")
 
 # Validate required environment variables
 if not api_id or not api_hash or not bot_token:
-    logger.error("Missing required environment variables: TG_API_ID, TG_API_HASH, or TG_BOT_TOKEN")
-    raise ValueError("Missing required environment variables: TG_API_ID, TG_API_HASH, or TG_BOT_TOKEN")
+    logger.error(
+        "Missing required environment variables: TG_API_ID, TG_API_HASH, or TG_BOT_TOKEN"
+    )
+    raise ValueError(
+        "Missing required environment variables: TG_API_ID, TG_API_HASH, or TG_BOT_TOKEN"
+    )
 
 api_id = int(api_id)
 logger.info("Environment variables loaded successfully")
@@ -89,18 +90,19 @@ except Exception as e:
 session_manager = SessionManager(api_id, api_hash)
 logger.info("Session manager initialized")
 
+
 @bot.on(events.NewMessage(pattern="/start"))
 async def start(event):
     """Handle /start command with keyboard markup"""
     user_id = event.sender_id
     is_logged_in = session_manager.has_session(user_id)
-    
+
     # Create keyboard buttons
     if is_logged_in:
         buttons = [
             [KeyboardButton("/search"), KeyboardButton("/status")],
             [KeyboardButton("/help"), KeyboardButton("/feedback")],
-            [KeyboardButton("/logout")]
+            [KeyboardButton("/logout")],
         ]
         message = (
             "👋 Welcome back! You're already logged in.\n\n"
@@ -109,13 +111,13 @@ async def start(event):
     else:
         buttons = [
             [KeyboardButton("/login")],
-            [KeyboardButton("/help"), KeyboardButton("/feedback")]
+            [KeyboardButton("/help"), KeyboardButton("/feedback")],
         ]
         message = (
             "👋 Hi! I'm a keyword search bot.\n\n"
             "To get started, click /login to authenticate with your Telegram account."
         )
-    
+
     await event.respond(message, buttons=buttons)
 
 
@@ -124,13 +126,15 @@ async def cmd_login(event):
     """Handle /login command - start authentication flow"""
     user_id = event.sender_id
     logger.info(f"User {user_id} initiated login")
-    
+
     # Check if already logged in
     if session_manager.has_session(user_id):
         logger.info(f"User {user_id} already logged in")
-        await event.respond("You're already logged in! Use /logout first if you want to log in with a different account.")
+        await event.respond(
+            "You're already logged in! Use /logout first if you want to log in with a different account."
+        )
         return
-    
+
     USER_STATE[user_id] = {"step": "awaiting_phone"}
     await event.respond(
         "🔐 Please send your phone number in international format:\n"
@@ -143,11 +147,11 @@ async def cmd_logout(event):
     """Handle /logout command - remove user session"""
     user_id = event.sender_id
     logger.info(f"User {user_id} initiated logout")
-    
+
     if not session_manager.has_session(user_id):
         await event.respond("You're not logged in.")
         return
-    
+
     success = await session_manager.logout(user_id)
     if success:
         # Clear any pending state
@@ -164,7 +168,7 @@ async def cmd_logout(event):
 async def cmd_status(event):
     """Check login status"""
     user_id = event.sender_id
-    
+
     if session_manager.has_session(user_id):
         client = await session_manager.get_client(user_id)
         if client:
@@ -212,7 +216,7 @@ async def cmd_feedback(event):
     """Handle feedback command - start feedback flow"""
     user_id = event.sender_id
     logger.info(f"User {user_id} initiated feedback")
-    
+
     USER_STATE[user_id] = {"step": "awaiting_feedback"}
     await event.respond(
         "💬 **Send Your Feedback**\n\n"
@@ -225,7 +229,7 @@ async def cmd_feedback(event):
 @bot.on(events.NewMessage(pattern="/search"))
 async def cmd_search(event):
     user_id = event.sender_id
-    
+
     # Check if user is logged in
     if not session_manager.has_session(user_id):
         await event.respond(
@@ -233,24 +237,23 @@ async def cmd_search(event):
             "Use /login to authenticate with your Telegram account."
         )
         return
-    
+
     # Verify session is still valid
     client = await session_manager.get_client(user_id)
     if not client:
-        await event.respond(
-            "⚠️ Your session has expired. Please /login again."
-        )
+        await event.respond("⚠️ Your session has expired. Please /login again.")
         return
-    
+
     USER_STATE[user_id] = {"step": "chats"}
     await event.respond(
         "Enter chat/group names to search (comma-separated), or type 'all' to search all chats:"
     )
 
+
 @bot.on(events.NewMessage)
 async def handle_message(event):
     # Ignore command messages
-    if event.raw_text.startswith('/'):
+    if event.raw_text.startswith("/"):
         # Handle /cancel command in any context
         if event.raw_text == "/cancel":
             user_id = event.sender_id
@@ -258,11 +261,11 @@ async def handle_message(event):
                 del USER_STATE[user_id]
                 await event.respond("❌ Cancelled. Use /start to begin.")
         return
-    
+
     # Ignore bot's own messages
     if event.out:
         return
-    
+
     user_id = event.sender_id
     if user_id not in USER_STATE:
         return
@@ -273,7 +276,7 @@ async def handle_message(event):
     if state["step"] == "awaiting_feedback":
         feedback_text = event.raw_text
         logger.info(f"Feedback from user {user_id}: {feedback_text}")
-        
+
         # Send feedback to admin
         try:
             admin_username = "Amir10Aeini"
@@ -294,19 +297,21 @@ async def handle_message(event):
                 "❌ Failed to send feedback. Please try again later.\n\n"
                 "Use /start to return to the main menu."
             )
-        
+
         del USER_STATE[user_id]
         return
 
     # Handle login flow
     if state["step"] == "awaiting_phone":
         phone = event.raw_text.strip()
-        
+
         # Basic phone validation
-        if not phone.startswith('+') or len(phone) < 10:
-            await event.respond("❌ Invalid phone format. Please use international format: +1234567890")
+        if not phone.startswith("+") or len(phone) < 10:
+            await event.respond(
+                "❌ Invalid phone format. Please use international format: +1234567890"
+            )
             return
-        
+
         try:
             client, needs_code = await session_manager.create_client(user_id, phone)
             state["phone"] = phone
@@ -319,46 +324,53 @@ async def handle_message(event):
             await event.respond(f"❌ Error: {str(e)}")
             del USER_STATE[user_id]
         return
-    
+
     if state["step"] == "awaiting_code":
         code = event.raw_text.strip()
         phone = state.get("phone")
-        
+
         if not phone:
-            await event.respond("❌ Error: Phone number not found. Please start over with /login")
+            await event.respond(
+                "❌ Error: Phone number not found. Please start over with /login"
+            )
             del USER_STATE[user_id]
             return
-        
+
         success, message = await session_manager.verify_code(user_id, phone, code)
-        
+
         if message == "2FA_REQUIRED":
             state["step"] = "awaiting_2fa"
             await event.respond(
-                "🔐 Your account has 2FA enabled.\n"
-                "Please send your 2FA password:"
+                "🔐 Your account has 2FA enabled.\n" "Please send your 2FA password:"
             )
             return
-        
+
         if success:
-            await event.respond(message + "\n\nYou can now use /search to search your chats!")
+            await event.respond(
+                message + "\n\nYou can now use /search to search your chats!"
+            )
             del USER_STATE[user_id]
         else:
             await event.respond(message)
             del USER_STATE[user_id]
         return
-    
+
     if state["step"] == "awaiting_2fa":
         password = event.raw_text.strip()
         phone = state.get("phone")
         code = state.get("code", "")
-        
-        success, message = await session_manager.verify_code(user_id, phone, code, password)
-        
+
+        success, message = await session_manager.verify_code(
+            user_id, phone, code, password
+        )
+
         if success:
-            await event.respond(message + "\n\nYou can now use /search to search your chats!")
+            await event.respond(
+                message + "\n\nYou can now use /search to search your chats!"
+            )
         else:
             await event.respond(message)
-        
+
         del USER_STATE[user_id]
         return
 
@@ -374,9 +386,11 @@ async def handle_message(event):
                 await event.respond("Please enter at least one chat name or 'all'.")
                 return
             state["chats"] = chats
-        
+
         state["step"] = "keywords"
-        await event.respond("Send keywords separated by commas (e.g. python,django,remote):")
+        await event.respond(
+            "Send keywords separated by commas (e.g. python,django,remote):"
+        )
         return
 
     # 2) keywords
@@ -441,27 +455,31 @@ async def handle_message(event):
                 snippet = (msg.message or "").replace("\n", " ")
                 if len(snippet) > 80:
                     snippet = snippet[:77] + "..."
-                
+
                 # Generate message link
                 entity = dialog.entity
                 msg_link = None
-                
+
                 # Check if entity has username (public channel/group)
-                if hasattr(entity, 'username') and entity.username:
+                if hasattr(entity, "username") and entity.username:
                     msg_link = f"https://t.me/{entity.username}/{msg.id}"
                 else:
                     # For private chats/groups, use the c/ format
                     # Get the chat_id without -100 prefix for channels/supergroups
                     chat_id = entity.id
-                    if hasattr(entity, 'megagroup') or hasattr(entity, 'broadcast'):
+                    if hasattr(entity, "megagroup") or hasattr(entity, "broadcast"):
                         # It's a channel or supergroup
                         msg_link = f"https://t.me/c/{chat_id}/{msg.id}"
-                    elif hasattr(entity, 'id'):
+                    elif hasattr(entity, "id"):
                         # It's a private chat - use tg:// protocol
-                        msg_link = f"tg://openmessage?user_id={chat_id}&message_id={msg.id}"
-                
+                        msg_link = (
+                            f"tg://openmessage?user_id={chat_id}&message_id={msg.id}"
+                        )
+
                 if msg_link:
-                    lines.append(f"📌 {chat_name} | {msg.date.date()}\n{snippet}\n[Open Message]({msg_link})\n")
+                    lines.append(
+                        f"📌 {chat_name} | {msg.date.date()}\n{snippet}\n[Open Message]({msg_link})\n"
+                    )
                 else:
                     lines.append(f"📌 {chat_name} | {msg.date.date()}\n{snippet}\n")
 
@@ -469,13 +487,15 @@ async def handle_message(event):
 
         del USER_STATE[user_id]
         return
-    
+
+
 async def shutdown():
     """Cleanup on shutdown"""
     print("Shutting down...")
     await session_manager.disconnect_all()
     await bot.disconnect()
     print("Disconnected all clients.")
+
 
 def main_run():
     print("Bot running...")
@@ -485,6 +505,7 @@ def main_run():
         print("\nReceived interrupt signal...")
     finally:
         bot.loop.run_until_complete(shutdown())
+
 
 if __name__ == "__main__":
     main_run()

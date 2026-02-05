@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 
 import sys
 import os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import Config
@@ -25,11 +26,8 @@ from session_manager import SessionManager
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('bot.log'),
-        logging.StreamHandler()
-    ]
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("bot.log"), logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
@@ -42,28 +40,30 @@ session_manager = None
 def create_bot_client():
     """Create and initialize the bot client."""
     global bot, session_manager
-    
+
     # Validate configuration
     if not Config.validate_bot():
         logger.error("Missing required environment variables")
-        raise ValueError("Missing required environment variables: TG_API_ID, TG_API_HASH, or TG_BOT_TOKEN")
-    
+        raise ValueError(
+            "Missing required environment variables: TG_API_ID, TG_API_HASH, or TG_BOT_TOKEN"
+        )
+
     api_id = Config.get_api_id()
     api_hash = Config.API_HASH
     bot_token = Config.BOT_TOKEN
-    
+
     logger.info("Environment variables loaded successfully")
-    
+
     # Proxy configuration
     use_proxy = Config.use_proxy()
     proxy = Config.get_proxy()
     conn = connection.ConnectionTcpMTProxyRandomizedIntermediate if use_proxy else None
-    
+
     if use_proxy:
         logger.info("MTProto proxy enabled")
     else:
         logger.info("Direct connection (no proxy)")
-    
+
     # Create bot client
     try:
         if use_proxy:
@@ -88,28 +88,28 @@ def create_bot_client():
     except Exception as e:
         logger.error(f"Failed to initialize bot client: {e}")
         raise
-    
+
     # Initialize session manager
     session_manager = SessionManager(api_id, api_hash)
     logger.info("Session manager initialized")
-    
+
     return bot
 
 
 def setup_handlers(bot_client):
     """Set up all event handlers for the bot."""
-    
+
     @bot_client.on(events.NewMessage(pattern="/start"))
     async def start(event):
         """Handle /start command with keyboard markup"""
         user_id = event.sender_id
         is_logged_in = session_manager.has_session(user_id)
-        
+
         if is_logged_in:
             buttons = [
                 [KeyboardButton("/search"), KeyboardButton("/status")],
                 [KeyboardButton("/help"), KeyboardButton("/feedback")],
-                [KeyboardButton("/logout")]
+                [KeyboardButton("/logout")],
             ]
             message = (
                 "👋 Welcome back! You're already logged in.\n\n"
@@ -118,13 +118,13 @@ def setup_handlers(bot_client):
         else:
             buttons = [
                 [KeyboardButton("/login")],
-                [KeyboardButton("/help"), KeyboardButton("/feedback")]
+                [KeyboardButton("/help"), KeyboardButton("/feedback")],
             ]
             message = (
                 "👋 Hi! I'm a keyword search bot.\n\n"
                 "To get started, click /login to authenticate with your Telegram account."
             )
-        
+
         await event.respond(message, buttons=buttons)
 
     @bot_client.on(events.NewMessage(pattern="/login"))
@@ -132,12 +132,14 @@ def setup_handlers(bot_client):
         """Handle /login command - start authentication flow"""
         user_id = event.sender_id
         logger.info(f"User {user_id} initiated login")
-        
+
         if session_manager.has_session(user_id):
             logger.info(f"User {user_id} already logged in")
-            await event.respond("You're already logged in! Use /logout first if you want to log in with a different account.")
+            await event.respond(
+                "You're already logged in! Use /logout first if you want to log in with a different account."
+            )
             return
-        
+
         USER_STATE[user_id] = {"step": "awaiting_phone"}
         await event.respond(
             "🔐 Please send your phone number in international format:\n"
@@ -149,11 +151,11 @@ def setup_handlers(bot_client):
         """Handle /logout command - remove user session"""
         user_id = event.sender_id
         logger.info(f"User {user_id} initiated logout")
-        
+
         if not session_manager.has_session(user_id):
             await event.respond("You're not logged in.")
             return
-        
+
         success = await session_manager.logout(user_id)
         if success:
             if user_id in USER_STATE:
@@ -168,7 +170,7 @@ def setup_handlers(bot_client):
     async def cmd_status(event):
         """Check login status"""
         user_id = event.sender_id
-        
+
         if session_manager.has_session(user_id):
             client = await session_manager.get_client(user_id)
             if client:
@@ -214,7 +216,7 @@ def setup_handlers(bot_client):
         """Handle feedback command - start feedback flow"""
         user_id = event.sender_id
         logger.info(f"User {user_id} initiated feedback")
-        
+
         USER_STATE[user_id] = {"step": "awaiting_feedback"}
         await event.respond(
             "💬 **Send Your Feedback**\n\n"
@@ -226,25 +228,25 @@ def setup_handlers(bot_client):
     @bot_client.on(events.NewMessage(pattern="/search"))
     async def cmd_search(event):
         user_id = event.sender_id
-        
+
         if not session_manager.has_session(user_id):
             await event.respond(
                 "⚠️ You need to log in first!\n\n"
                 "Use /login to authenticate with your Telegram account."
             )
             return
-        
+
         client = await session_manager.get_client(user_id)
         if not client:
-            await event.respond(
-                "⚠️ Your session has expired. Please /login again."
-            )
+            await event.respond("⚠️ Your session has expired. Please /login again.")
             return
-        
+
         # Get user's folders
         folders = await get_all_folders(client)
-        folder_list = ", ".join([f"<{f}>" for f in folders]) if folders else "No folders found"
-        
+        folder_list = (
+            ", ".join([f"<{f}>" for f in folders]) if folders else "No folders found"
+        )
+
         USER_STATE[user_id] = {"step": "chats"}
         await event.respond(
             "📂 **Enter where to search:**\n\n"
@@ -258,17 +260,17 @@ def setup_handlers(bot_client):
     @bot_client.on(events.NewMessage)
     async def handle_message(event):
         # Ignore command messages
-        if event.raw_text.startswith('/'):
+        if event.raw_text.startswith("/"):
             if event.raw_text == "/cancel":
                 user_id = event.sender_id
                 if user_id in USER_STATE:
                     del USER_STATE[user_id]
                     await event.respond("❌ Cancelled. Use /start to begin.")
             return
-        
+
         if event.out:
             return
-        
+
         user_id = event.sender_id
         if user_id not in USER_STATE:
             return
@@ -279,7 +281,7 @@ def setup_handlers(bot_client):
         if state["step"] == "awaiting_feedback":
             feedback_text = event.raw_text
             logger.info(f"Feedback from user {user_id}: {feedback_text}")
-            
+
             try:
                 admin_username = Config.ADMIN_USERNAME
                 feedback_message = (
@@ -299,18 +301,20 @@ def setup_handlers(bot_client):
                     "❌ Failed to send feedback. Please try again later.\n\n"
                     "Use /start to return to the main menu."
                 )
-            
+
             del USER_STATE[user_id]
             return
 
         # Handle login flow
         if state["step"] == "awaiting_phone":
             phone = event.raw_text.strip()
-            
-            if not phone.startswith('+') or len(phone) < 10:
-                await event.respond("❌ Invalid phone format. Please use international format: +1234567890")
+
+            if not phone.startswith("+") or len(phone) < 10:
+                await event.respond(
+                    "❌ Invalid phone format. Please use international format: +1234567890"
+                )
                 return
-            
+
             try:
                 client, needs_code = await session_manager.create_client(user_id, phone)
                 state["phone"] = phone
@@ -323,18 +327,20 @@ def setup_handlers(bot_client):
                 await event.respond(f"❌ Error: {str(e)}")
                 del USER_STATE[user_id]
             return
-        
+
         if state["step"] == "awaiting_code":
             code = event.raw_text.strip()
             phone = state.get("phone")
-            
+
             if not phone:
-                await event.respond("❌ Error: Phone number not found. Please start over with /login")
+                await event.respond(
+                    "❌ Error: Phone number not found. Please start over with /login"
+                )
                 del USER_STATE[user_id]
                 return
-            
+
             success, message = await session_manager.verify_code(user_id, phone, code)
-            
+
             if message == "2FA_REQUIRED":
                 state["step"] = "awaiting_2fa"
                 await event.respond(
@@ -342,27 +348,33 @@ def setup_handlers(bot_client):
                     "Please send your 2FA password:"
                 )
                 return
-            
+
             if success:
-                await event.respond(message + "\n\nYou can now use /search to search your chats!")
+                await event.respond(
+                    message + "\n\nYou can now use /search to search your chats!"
+                )
                 del USER_STATE[user_id]
             else:
                 await event.respond(message)
                 del USER_STATE[user_id]
             return
-        
+
         if state["step"] == "awaiting_2fa":
             password = event.raw_text.strip()
             phone = state.get("phone")
             code = state.get("code", "")
-            
-            success, message = await session_manager.verify_code(user_id, phone, code, password)
-            
+
+            success, message = await session_manager.verify_code(
+                user_id, phone, code, password
+            )
+
             if success:
-                await event.respond(message + "\n\nYou can now use /search to search your chats!")
+                await event.respond(
+                    message + "\n\nYou can now use /search to search your chats!"
+                )
             else:
                 await event.respond(message)
-            
+
             del USER_STATE[user_id]
             return
 
@@ -375,11 +387,13 @@ def setup_handlers(bot_client):
             else:
                 # Parse for folders (<folder_name>) and chat names
                 folders, chats = parse_chat_filter(chats_input)
-                
+
                 if not folders and not chats:
-                    await event.respond("Please enter at least one chat name, folder, or 'all'.")
+                    await event.respond(
+                        "Please enter at least one chat name, folder, or 'all'."
+                    )
                     return
-                
+
                 state["chats"] = chats if chats else None
                 state["folders"] = folders if folders else None
 
@@ -401,7 +415,9 @@ def setup_handlers(bot_client):
                 state["exclude_folders"] = ex_folders if ex_folders else None
 
             state["step"] = "keywords"
-            await event.respond("Send keywords separated by commas (e.g. python,django,remote):")
+            await event.respond(
+                "Send keywords separated by commas (e.g. python,django,remote):"
+            )
             return
 
         if state["step"] == "keywords":
@@ -448,7 +464,9 @@ def setup_handlers(bot_client):
             if folders:
                 search_in.append(f"folders: {', '.join(folders)}")
             if chats:
-                search_in.append(f"chats: {', '.join(chats) if isinstance(chats, list) else chats}")
+                search_in.append(
+                    f"chats: {', '.join(chats) if isinstance(chats, list) else chats}"
+                )
             if not search_in:
                 search_in.append("all chats")
 
@@ -456,7 +474,7 @@ def setup_handlers(bot_client):
                 search_in.append(f"exclude folders: {', '.join(exclude_folders)}")
             if exclude_chats:
                 search_in.append(f"exclude chats: {', '.join(exclude_chats)}")
-            
+
             await event.respond(
                 f"🔍 Searching for {', '.join(keywords)}\n"
                 f"📂 In: {', '.join(search_in)}\n"
@@ -488,21 +506,23 @@ def setup_handlers(bot_client):
                     chat_name = dialog.name or "Unknown chat"
                     snippet = (msg.message or "").replace("\n", " ")
                     snippet = truncate_text(snippet, 80)
-                    
+
                     entity = dialog.entity
                     msg_link = None
-                    
-                    if hasattr(entity, 'username') and entity.username:
+
+                    if hasattr(entity, "username") and entity.username:
                         msg_link = f"https://t.me/{entity.username}/{msg.id}"
                     else:
                         chat_id = entity.id
-                        if hasattr(entity, 'megagroup') or hasattr(entity, 'broadcast'):
+                        if hasattr(entity, "megagroup") or hasattr(entity, "broadcast"):
                             msg_link = f"https://t.me/c/{chat_id}/{msg.id}"
-                        elif hasattr(entity, 'id'):
+                        elif hasattr(entity, "id"):
                             msg_link = f"tg://openmessage?user_id={chat_id}&message_id={msg.id}"
-                    
+
                     if msg_link:
-                        lines.append(f"📌 {chat_name} | {msg.date.date()}\n{snippet}\n[Open Message]({msg_link})\n")
+                        lines.append(
+                            f"📌 {chat_name} | {msg.date.date()}\n{snippet}\n[Open Message]({msg_link})\n"
+                        )
                     else:
                         lines.append(f"📌 {chat_name} | {msg.date.date()}\n{snippet}\n")
 
@@ -526,10 +546,10 @@ async def shutdown():
 def run_bot():
     """Main entry point to run the bot."""
     global bot
-    
+
     bot = create_bot_client()
     setup_handlers(bot)
-    
+
     print("Bot running...")
     try:
         bot.run_until_disconnected()

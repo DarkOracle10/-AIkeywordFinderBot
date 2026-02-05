@@ -25,12 +25,12 @@ def run_bot_thread():
 if __name__ == "__main__":
     print("Starting Telegram Keyword Search...")
     print("=" * 40)
-    
+
     # Start bot in background thread
     bot_thread = threading.Thread(target=run_bot_thread, daemon=True)
     bot_thread.start()
     print("✅ Telegram bot started in background")
-    
+
     # Run GUI in main thread
     print("✅ Starting desktop application...")
     print("=" * 40)
